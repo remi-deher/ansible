@@ -1,0 +1,93 @@
+---
+# --- LISTER USERS ---
+- name: Récupérer la liste des utilisateurs
+  ansible.windows.win_shell: |
+    Get-ADUser -Filter * -Properties Enabled | 
+    Select-Object Name, SamAccountName, Enabled | 
+    Sort-Object Name | 
+    Format-Table -AutoSize | Out-String -Width 4096
+  register: user_list_raw
+  when: ad_action == "list_users"
+
+- name: Afficher les utilisateurs
+  debug:
+    msg: "{{ user_list_raw.stdout_lines }}"
+  when: ad_action == "list_users"
+
+# --- DÉTAILS UTILISATEUR ---
+- name: Récupérer les détails complets de l'utilisateur
+  ansible.windows.win_shell: |
+    $ErrorActionPreference = "Stop"
+    $userName = "{{ target_username }}"
+    
+    $u = Get-ADUser -Identity $userName -Properties *, altSecurityIdentities
+    
+    # Groupes
+    if ($u.MemberOf) {
+        $groups = $u.MemberOf | ForEach-Object { (Get-ADGroup $_).Name }
+        $groupsStr = $groups -join ", "
+    } else { $groupsStr = "Aucun" }
+    
+    # Clés SSH
+    if ($u.altSecurityIdentities) {
+        $kList = @($u.altSecurityIdentities) | 
+                 Where-Object { $_ -like 'SSHKey:*' } | 
+                 ForEach-Object { $_ -replace 'SSHKey:', '' }
+        $keysStr = $kList -join ", "
+    } else { $keysStr = $null }
+
+    if ([string]::IsNullOrWhiteSpace($keysStr)) { $keysStr = "Aucune" }
+    
+    $props = [ordered]@{
+        "Nom Complet"        = $u.Name
+        "Login (SamAccount)" = $u.SamAccountName
+        "Active"             = $u.Enabled
+        "Derniere Connexion" = $u.LastLogonDate
+        "Mot de passe change"= $u.PasswordLastSet
+        "Groupes"            = $groupsStr
+        "Cles SSH"           = $keysStr
+    }
+    
+    (New-Object PSObject -Property $props | Format-List | Out-String -Width 4096).Trim()
+  register: user_details_raw
+  when: ad_action == "get_user_details"
+
+- name: Afficher les détails
+  debug:
+    msg: "{{ user_details_raw.stdout_lines }}"
+  when: ad_action == "get_user_details"
+
+# --- LISTER GROUPES ---
+- name: Récupérer la liste des groupes
+  ansible.windows.win_shell: |
+    Get-ADGroup -Filter * | 
+    Select-Object Name, GroupScope, DistinguishedName | 
+    Sort-Object Name |
+    Format-Table -AutoSize | Out-String -Width 4096
+  register: group_list_raw
+  when: ad_action == "list_groups"
+
+- name: Afficher les groupes
+  debug:
+    msg: "{{ group_list_raw.stdout_lines }}"
+  when: ad_action == "list_groups"
+
+# --- LISTER CLÉS SSH ---
+- name: Récupérer les clés SSH
+  ansible.windows.win_shell: |
+    $userName = "{{ target_username }}"
+    $u = Get-ADUser -Identity $userName -Properties altSecurityIdentities
+    
+    if ($u.altSecurityIdentities) {
+        Write-Output "--- Cles SSH pour $userName ---"
+        $u.altSecurityIdentities | ForEach-Object { $_ -replace 'SSHKey:', '' }
+    } else {
+        Write-Output "Aucune cle SSH trouvee pour $userName."
+    }
+  register: ssh_list_raw
+  when: ad_action == "list_ssh_keys"
+
+- name: Afficher les clés SSH
+  debug:
+    msg: "{{ ssh_list_raw.stdout_lines }}"
+  when: ad_action == "list_ssh_keys"

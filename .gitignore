@@ -1,0 +1,8 @@
+.vault_pass
+ansible.cfg
+*.pfx
+*.key
+*.crt
+*.pem
+*.csr
+files/certs/*

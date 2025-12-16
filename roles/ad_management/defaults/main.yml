@@ -1,0 +1,8 @@
+---
+ad_action: "check"
+target_username: ""
+target_password: ""
+target_group: ""
+ssh_key_string: ""
+group_action: "add"
+ssh_action: "add"

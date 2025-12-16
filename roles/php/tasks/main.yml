@@ -1,0 +1,21 @@
+---
+- name: Installer PHP {{ php_version }} et extensions communes
+  apt:
+    name:
+      - "php{{ php_version }}-fpm"
+      - "php{{ php_version }}-common"
+      - "php{{ php_version }}-cli"
+      - "php{{ php_version }}-curl"
+      - "php{{ php_version }}-xml"
+      - "php{{ php_version }}-zip"
+      - "php{{ php_version }}-mbstring"
+      - "php{{ php_version }}-sqlite3"
+      - composer
+    state: present
+    update_cache: yes
+
+- name: S'assurer que PHP-FPM est démarré
+  service:
+    name: "php{{ php_version }}-fpm"
+    state: started
+    enabled: yes

@@ -1,0 +1,24 @@
+---
+- name: "SSSD | Arrêter le service avant nettoyage"
+  service:
+    name: sssd
+    state: stopped
+
+- name: "SSSD | Supprimer le cache (DB)"
+  file:
+    path: "/var/lib/sss/db/{{ item }}"
+    state: absent
+  with_fileglob:
+    - "/var/lib/sss/db/*"
+
+- name: "SSSD | Supprimer le cache (Memory Cache)"
+  file:
+    path: "/var/lib/sss/mc/{{ item }}"
+    state: absent
+  with_fileglob:
+    - "/var/lib/sss/mc/*"
+
+- name: "SSSD | Redémarrer le service"
+  service:
+    name: sssd
+    state: started

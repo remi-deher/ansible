@@ -1,0 +1,7 @@
+---
+- name: Déploiement des Certificats Système (CA / Trust)
+  hosts: all
+  become: yes # Ignoré par Windows automatiquement via le rôle
+  
+  roles:
+    - certificates

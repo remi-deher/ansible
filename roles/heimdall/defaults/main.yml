@@ -1,0 +1,6 @@
+---
+heimdall_root: "/var/www/heimdall"
+heimdall_port: 82
+heimdall_domain: "_"
+# On reprend la version PHP locale pour configurer le vhost Nginx correctement
+heimdall_php_version: "8.4"

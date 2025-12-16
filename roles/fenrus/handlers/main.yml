@@ -1,0 +1,6 @@
+---
+- name: Restart Fenrus
+  systemd:
+    name: fenrus
+    state: restarted
+    daemon_reload: yes

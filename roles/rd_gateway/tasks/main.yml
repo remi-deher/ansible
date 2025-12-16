@@ -1,0 +1,76 @@
+---
+- name: Copier le fichier PFX sur le serveur Windows
+  ansible.windows.win_copy:
+    src: "{{ pfx_local_path }}"
+    dest: "{{ win_pfx_dest }}"
+
+- name: Importer le certificat dans le magasin Machine
+  ansible.windows.win_certificate_store:
+    path: "{{ win_pfx_dest }}"
+    state: present
+    store_location: LocalMachine
+    store_name: My
+    password: "{{ pfx_password }}"
+    key_storage: machine
+  register: cert_import
+
+- name: Récupérer le Thumbprint
+  ansible.windows.win_shell: |
+    $pass = "{{ pfx_password }}"
+    $path = "{{ win_pfx_dest }}"
+    $cert = New-Object System.Security.Cryptography.X509Certificates.X509Certificate2($path, $pass)
+    return $cert.Thumbprint
+  register: thumbprint_out
+  changed_when: false
+
+- name: Appliquer les bindings (IIS, WMI Gateway, UDP)
+  ansible.windows.win_shell: |
+    $hashString = "{{ thumbprint_out.stdout | trim }}"
+    $appid = "{{ rdp_gateway_appid }}"
+    $changeDetected = $false
+
+    Write-Host "Hash Cible : $hashString"
+
+    # Conversion String -> Byte[] pour WMI (Server 2025+)
+    $hashBytes = for ($i = 0; $i -lt $hashString.Length; $i += 2) {
+        [convert]::ToByte($hashString.Substring($i, 2), 16)
+    }
+
+    # --- A. IIS ---
+    Import-Module WebAdministration
+    $iisPath = "IIS:\SslBindings\0.0.0.0!443"
+    $currentIIS = Get-ItemProperty -Path $iisPath -Name "Thumbprint" -ErrorAction SilentlyContinue
+    
+    if ($null -eq $currentIIS -or $currentIIS.Thumbprint -ne $hashString) {
+        try { Get-WebBinding -Name "Default Web Site" -Protocol https | Remove-WebBinding } catch {}
+        New-WebBinding -Name "Default Web Site" -Protocol https -Port 443 -IPAddress "*" -SslFlags 0
+        $changeDetected = $true
+    }
+
+    # --- B. RD GATEWAY (WMI) ---
+    $wmi = Get-WmiObject -Namespace "root\cimv2\TerminalServices" -Class "Win32_TSGatewayServerSettings"
+    if ($wmi.SslCertificateHash -ne $hashString) {
+        $wmi.SetCertificate($hashBytes)
+        $changeDetected = $true
+    }
+
+    # --- C. UDP (3391) ---
+    if ($changeDetected) {
+            try { netsh http delete sslcert ipport=0.0.0.0:3391 } catch {}
+            netsh http add sslcert ipport=0.0.0.0:3391 certhash=$hashString appid=$appid certstorename=MY
+    }
+
+    if ($changeDetected) { Write-Host "CHANGED" }
+  register: config_result
+  changed_when: "'CHANGED' in config_result.stdout"
+
+- name: Redémarrer le service TSGateway
+  ansible.windows.win_service:
+    name: TSGateway
+    state: restarted
+  when: config_result.changed
+
+- name: Nettoyage fichier PFX Windows
+  ansible.windows.win_file:
+    path: "{{ win_pfx_dest }}"
+    state: absent

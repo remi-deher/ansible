@@ -1,0 +1,12 @@
+---
+- name: "Système | Mise à jour des paquets (APT)"
+  import_tasks: updates.yml
+  tags: [updates, system]
+
+- name: "Système | Installation des outils communs"
+  import_tasks: packages.yml
+  tags: [packages, system]
+
+- name: "Sécurité | Configuration de base (UFW & SSH)"
+  import_tasks: security.yml
+  tags: [security, firewall]

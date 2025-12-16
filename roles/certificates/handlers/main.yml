@@ -1,0 +1,4 @@
+---
+- name: update_ca_linux
+  command: /usr/sbin/update-ca-certificates
+  changed_when: true

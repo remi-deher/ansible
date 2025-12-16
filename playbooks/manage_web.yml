@@ -1,0 +1,13 @@
+---
+- name: Déploiement de la Stack Web (Heimdall)
+  hosts: webservers
+  become: yes
+
+  vars:
+    # php_version: "8.4"
+
+  roles:
+    - common      # Toujours le socle
+    - nginx       # Le serveur web
+    - php         # Le moteur PHP
+    - heimdall    # L'application

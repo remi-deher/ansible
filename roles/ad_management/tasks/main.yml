@@ -1,0 +1,12 @@
+---
+- name: Aiguillage vers Ping
+  include_tasks: ping.yml
+  when: ad_action == "ping"
+
+- name: Aiguillage vers Consultation (Lecture seule)
+  include_tasks: consultation.yml
+  when: ad_action in ["list_users", "get_user_details", "list_groups", "list_ssh_keys"]
+
+- name: Aiguillage vers Management (Écriture)
+  include_tasks: management.yml
+  when: ad_action in ["create_user", "disable_user", "reset_password", "manage_group_member", "manage_ssh_key"]

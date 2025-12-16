@@ -1,0 +1,40 @@
+---
+- name: Installer le paquet Zabbix Agent
+  apt:
+    name: zabbix-agent
+    state: present
+    # update_cache est déjà géré par le rôle 'common'
+
+- name: Créer les dossiers de configuration et logs
+  file:
+    path: "{{ item }}"
+    state: directory
+    owner: zabbix
+    group: zabbix
+    mode: '0755'
+  loop:
+    - /etc/zabbix/zabbix_agentd.d
+    - /var/log/zabbix
+
+- name: Déployer le fichier de configuration
+  template:
+    src: zabbix_agentd.conf.j2
+    dest: /etc/zabbix/zabbix_agentd.conf
+    owner: root
+    group: root
+    mode: '0644'
+  notify: Redémarrer Zabbix Agent
+
+- name: "Sécurité | Autoriser le port 10050 (Depuis Serveur Zabbix uniquement)"
+  community.general.ufw:
+    rule: allow
+    port: '10050'
+    proto: tcp
+    from_ip: "{{ zabbix_server_ip }}"
+    comment: "Monitoring Zabbix"
+
+- name: Activer et démarrer le service
+  service:
+    name: zabbix-agent
+    state: started
+    enabled: yes

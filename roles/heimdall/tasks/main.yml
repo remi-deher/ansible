@@ -1,0 +1,103 @@
+---
+# Note: git, unzip, sqlite3 sont déjà dans le rôle 'common'
+# Note: composer et php sont dans le rôle 'php'
+
+- name: "Sécurité | Autoriser le port {{ heimdall_port }}"
+  community.general.ufw:
+    rule: allow
+    port: "{{ heimdall_port | string }}"
+    proto: tcp
+    comment: "Heimdall Dashboard"
+
+- name: Créer le dossier racine
+  file:
+    path: "{{ heimdall_root }}"
+    state: directory
+    owner: www-data
+    group: www-data
+    mode: '0755'
+
+- name: Cloner le dépôt Heimdall
+  git:
+    repo: 'https://github.com/linuxserver/Heimdall.git'
+    dest: "{{ heimdall_root }}"
+    version: master
+    force: yes
+  become_user: www-data
+
+# --- FIX PHP 8.4 ---
+- name: Suppression du composer.lock (Incompatible PHP 8.4)
+  file:
+    path: "{{ heimdall_root }}/composer.lock"
+    state: absent
+
+- name: Installation des dépendances Composer
+  command: composer update --no-dev --prefer-dist --no-interaction --ignore-platform-req=php
+  args:
+    chdir: "{{ heimdall_root }}"
+  environment:
+    COMPOSER_ALLOW_SUPERUSER: "1"
+  # On ne marque "changed" que si des paquets sont installés/updatés
+  register: composer_out
+  changed_when: "'Nothing to install' not in composer_out.stdout"
+
+# --- CONFIG LARAVEL ---
+- name: Création du fichier .env
+  copy:
+    src: "{{ heimdall_root }}/.env.example"
+    dest: "{{ heimdall_root }}/.env"
+    remote_src: yes
+    force: no
+    owner: www-data
+    group: www-data
+
+- name: Génération de la clé Laravel
+  command: php artisan key:generate
+  args:
+    chdir: "{{ heimdall_root }}"
+  register: key_gen
+  changed_when: "'Application key set successfully' in key_gen.stdout"
+
+- name: Préparation de la base SQLite
+  file:
+    path: "{{ heimdall_root }}/database/database.sqlite"
+    state: touch
+    mode: '0664'
+    owner: www-data
+    group: www-data
+  changed_when: false
+
+- name: Migration de la base de données
+  command: php artisan migrate --force
+  args:
+    chdir: "{{ heimdall_root }}"
+  run_once: true
+  become_user: www-data
+  register: migrate_out
+  changed_when: "'Migrating' in migrate_out.stdout"
+
+# --- PERMISSIONS ---
+- name: Permissions d'écriture (Storage/Cache)
+  file:
+    path: "{{ item }}"
+    mode: '0775'
+    owner: www-data
+    group: www-data
+    recurse: yes
+  loop:
+    - "{{ heimdall_root }}/storage"
+    - "{{ heimdall_root }}/bootstrap/cache"
+
+# --- NGINX VHOST ---
+- name: Déploiement du template Nginx
+  template:
+    src: heimdall.conf.j2
+    dest: /etc/nginx/sites-available/heimdall.conf
+  notify: Reload Nginx
+
+- name: Activation du site
+  file:
+    src: /etc/nginx/sites-available/heimdall.conf
+    dest: /etc/nginx/sites-enabled/heimdall.conf
+    state: link
+  notify: Reload Nginx

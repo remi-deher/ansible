@@ -1,0 +1,9 @@
+---
+- name: Déploiement du Monitoring et Inventaire (Zabbix + GLPI)
+  hosts: linux
+  become: yes
+
+  roles:
+    - common         # Toujours le socle commun en premier
+    - zabbix_agent   # Surveillance
+    - glpi_agent     # Inventaire

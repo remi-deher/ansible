@@ -1,0 +1,80 @@
+---
+- name: "Sécurité | Autoriser le port {{ fenrus_port }}"
+  community.general.ufw:
+    rule: allow
+    port: "{{ fenrus_port | string }}"
+    proto: tcp
+    comment: "Fenrus Dashboard"
+
+# --- PRÉREQUIS .NET ---
+# L'installation de .NET 7 sur Debian/Ubuntu nécessite souvent le dépôt Microsoft packages
+- name: Ajouter la clé de signature du dépôt Microsoft
+  apt_key:
+    url: https://packages.microsoft.com/keys/microsoft.asc
+    state: present
+
+- name: Ajouter le dépôt Microsoft
+  apt_repository:
+    repo: "deb [arch=amd64] https://packages.microsoft.com/{{ ansible_distribution | lower }}/{{ ansible_distribution_version }}/prod {{ ansible_distribution_release }} main"
+    state: present
+    filename: microsoft-prod
+
+- name: Installer ASP.NET Core Runtime 7.0 et unzip
+  apt:
+    name:
+      - aspnetcore-runtime-7.0
+      - unzip
+    state: present
+    update_cache: yes
+
+# --- UTILISATEUR & DOSSIERS ---
+- name: Créer le groupe Fenrus
+  group:
+    name: "{{ fenrus_group }}"
+    system: yes
+
+- name: Créer l'utilisateur Fenrus
+  user:
+    name: "{{ fenrus_user }}"
+    group: "{{ fenrus_group }}"
+    system: yes
+    home: "{{ fenrus_install_dir }}"
+    create_home: no
+    shell: /usr/sbin/nologin
+
+- name: Créer les dossiers d'installation
+  file:
+    path: "{{ item }}"
+    state: directory
+    owner: "{{ fenrus_user }}"
+    group: "{{ fenrus_group }}"
+    mode: '0755'
+  loop:
+    - "{{ fenrus_install_dir }}"
+    - "{{ fenrus_data_dir }}"
+
+# --- INSTALLATION APPLICATION ---
+- name: Télécharger et extraire Fenrus
+  unarchive:
+    src: "{{ fenrus_download_url }}"
+    dest: "{{ fenrus_install_dir }}"
+    remote_src: yes
+    owner: "{{ fenrus_user }}"
+    group: "{{ fenrus_group }}"
+    # On évite de retélécharger si le fichier .dll principal existe déjà
+    creates: "{{ fenrus_install_dir }}/Fenrus.dll"
+  notify: Restart Fenrus
+
+# --- SERVICE SYSTEMD ---
+- name: Déployer le service Systemd pour Fenrus
+  template:
+    src: fenrus.service.j2
+    dest: /etc/systemd/system/fenrus.service
+  notify: Restart Fenrus
+
+- name: Activer et démarrer Fenrus
+  systemd:
+    name: fenrus
+    enabled: yes
+    state: started
+    daemon_reload: yes

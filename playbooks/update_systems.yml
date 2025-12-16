@@ -1,0 +1,7 @@
+---
+- name: Maintenance et Socle Commun Linux
+  hosts: linux
+  become: yes
+  
+  roles:
+    - common

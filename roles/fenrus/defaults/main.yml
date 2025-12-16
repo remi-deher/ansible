@@ -1,0 +1,14 @@
+---
+fenrus_version: "latest"
+# URL de la release GitHub (à adapter si vous voulez une version spécifique)
+fenrus_download_url: "https://github.com/revenz/Fenrus/releases/latest/download/Fenrus.zip"
+
+fenrus_user: "fenrus"
+fenrus_group: "fenrus"
+fenrus_install_dir: "/opt/fenrus"
+fenrus_data_dir: "/opt/fenrus/data"
+fenrus_port: 3000
+
+# Configuration Reverse Proxy (Variables d'environnement .NET)
+fenrus_reverse_proxy_enabled: "true"
+fenrus_trusted_proxy_ip: "{{ secret_reverse_proxy_ip }}"

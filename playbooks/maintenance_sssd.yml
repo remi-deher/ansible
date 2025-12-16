@@ -1,0 +1,11 @@
+---
+- name: Maintenance SSSD (Nettoyage Cache)
+  hosts: linux
+  become: yes
+  gather_facts: no # Pas besoin des facts pour juste restart un service
+
+  tasks:
+    - name: Exécuter le nettoyage SSSD
+      include_role:
+        name: sssd
+        tasks_from: clean_cache

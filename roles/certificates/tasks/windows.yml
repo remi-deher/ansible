@@ -1,0 +1,19 @@
+---
+- name: Création du dossier temporaire
+  ansible.windows.win_file:
+    path: "{{ certs_dest_windows }}"
+    state: directory
+
+- name: Copie des certificats (.crt)
+  ansible.windows.win_copy:
+    src: "{{ certs_local_windows }}"
+    dest: "{{ certs_dest_windows }}"
+    force: yes
+
+- name: Importation dans le magasin ROOT
+  ansible.windows.win_certificate_store:
+    path: "{{ item }}"
+    store_name: Root
+    state: present
+  with_fileglob:
+    - "{{ certs_local_windows }}/*.crt"

@@ -1,0 +1,21 @@
+[Unit]
+Description=Fenrus Dashboard
+After=network.target
+
+[Service]
+User={{ fenrus_user }}
+Group={{ fenrus_group }}
+WorkingDirectory={{ fenrus_install_dir }}
+# La documentation indique de spécifier le port via --urls ou la variable PORT, ici on utilise l'argument CLI standard .NET
+ExecStart=/usr/bin/dotnet Fenrus.dll --urls=http://*:{{ fenrus_port }}
+Restart=always
+RestartSec=10
+SyslogIdentifier=fenrus
+
+# Configuration Reverse Proxy
+Environment=ReverseProxySettings__UseForwardedHeaders={{ fenrus_reverse_proxy_enabled }}
+# Attention : Le format JSON est strict pour cette variable (guillemets doubles)
+Environment='ReverseProxySettings__KnownProxies=["{{ fenrus_trusted_proxy_ip }}"]'
+
+[Install]
+WantedBy=multi-user.target

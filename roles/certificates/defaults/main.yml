@@ -1,0 +1,8 @@
+---
+# Chemins des certificats sources (sur le contrôleur Ansible)
+certs_local_linux: "files/certs/linux/"
+certs_local_windows: "files/certs/windows/"
+
+# Chemins de destination
+certs_dest_linux: "/usr/local/share/ca-certificates/ansible-managed/"
+certs_dest_windows: "C:\\Windows\\Temp\\AnsibleCerts\\"

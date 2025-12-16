@@ -1,0 +1,32 @@
+---
+- name: Installer les paquets utilitaires standards
+  apt:
+    name:
+      # Outils système de base
+      - git
+      - curl
+      - wget
+      - unzip
+      - btop
+      - tree
+      - fzf
+      - acl  # Souvent requis par Ansible pour gérer les users non-root
+      
+      # Outils réseau
+      - ufw
+      - net-tools
+      - dnsutils
+      
+      # Dépendances fréquentes
+      - sqlite3
+      - make
+      - bash-completion
+    state: present
+    update_cache: no
+
+- name: Nettoyage - Désinstaller les paquets obsolètes
+  apt:
+    name:
+      - vim
+    state: absent
+    purge: yes # Supprime aussi les fichiers de config

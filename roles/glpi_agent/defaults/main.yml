@@ -1,0 +1,11 @@
+---
+# Configuration Serveur GLPI
+glpi_server_url: "{{ secret_glpi_server_url }}"
+
+# Configuration Agent
+glpi_agent_tag: "Linux"
+glpi_agent_version: "1.15"
+
+# Chemins de téléchargement (construits dynamiquement)
+glpi_installer_name: "glpi-agent-{{ glpi_agent_version }}-linux-installer.pl"
+glpi_download_url: "https://github.com/glpi-project/glpi-agent/releases/download/{{ glpi_agent_version }}/{{ glpi_installer_name }}"

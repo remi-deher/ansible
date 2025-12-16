@@ -1,0 +1,7 @@
+---
+# Pour le nettoyage du cache, on utilise 'clean_cache.yml'.
+
+- name: S'assurer que SSSD est installé
+  apt:
+    name: sssd
+    state: present

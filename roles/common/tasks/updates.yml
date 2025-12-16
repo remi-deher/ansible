@@ -1,0 +1,27 @@
+---
+- name: Mettre à jour le cache APT
+  apt:
+    update_cache: yes
+    cache_valid_time: 3600
+
+- name: Mettre à jour tous les paquets (Dist Upgrade)
+  apt:
+    upgrade: dist
+
+- name: Nettoyer les paquets inutiles (Autoremove)
+  apt:
+    autoremove: yes
+    purge: yes
+
+- name: Vérifier si un redémarrage est requis
+  stat:
+    path: /var/run/reboot-required
+  register: reboot_file_check
+
+# On notifie le handler pour qu'il décide (ou pas) de rebooter à la fin
+- name: Notifier redémarrage si nécessaire
+  debug:
+    msg: "Un redémarrage est requis suite aux mises à jour."
+  changed_when: true
+  notify: Reboot Server
+  when: reboot_file_check.stat.exists

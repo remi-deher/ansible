@@ -1,0 +1,58 @@
+---
+# 1. Création
+- name: Créer/Update User
+  microsoft.ad.user:
+    name: "{{ target_username }}"
+    password: "{{ target_password }}"
+    state: present
+    enabled: yes
+    groups:
+      - "{{ target_group | default('Domain Users') }}"
+  when: ad_action == "create_user" and target_username != ""
+
+# 2. Désactivation
+- name: Disable User
+  microsoft.ad.user:
+    name: "{{ target_username }}"
+    enabled: no
+  when: ad_action == "disable_user"
+
+# 3. Reset Password
+- name: Reset Password
+  microsoft.ad.user:
+    name: "{{ target_username }}"
+    password: "{{ target_password }}"
+    state: present
+  when: ad_action == "reset_password"
+
+# 4. Membres Groupe
+- name: Gestion Membre Groupe (Ajout)
+  microsoft.ad.group:
+    name: "{{ target_group }}"
+    members:
+      add: ["{{ target_username }}"]
+  when: ad_action == "manage_group_member" and group_action == "add"
+
+- name: Gestion Membre Groupe (Retrait)
+  microsoft.ad.group:
+    name: "{{ target_group }}"
+    members:
+      remove: ["{{ target_username }}"]
+  when: ad_action == "manage_group_member" and group_action == "remove"
+
+# 5. Clés SSH (Modification via PowerShell car pas de module natif simple pour cet attribut)
+- name: Ajout Clé SSH
+  ansible.windows.win_powershell:
+    script: |
+      $u = Get-ADUser -Identity "{{ target_username }}"
+      $keyVal = "SSHKey:{{ ssh_key_string }}"
+      Set-ADUser -Identity $u -Add @{altSecurityIdentities=$keyVal}
+  when: ad_action == "manage_ssh_key" and ssh_action == "add"
+
+- name: Retrait Clé SSH
+  ansible.windows.win_powershell:
+    script: |
+      $u = Get-ADUser -Identity "{{ target_username }}"
+      $keyVal = "SSHKey:{{ ssh_key_string }}"
+      Set-ADUser -Identity $u -Remove @{altSecurityIdentities=$keyVal}
+  when: ad_action == "manage_ssh_key" and ssh_action == "remove"

@@ -1,0 +1,6 @@
+---
+# IP du serveur Zabbix (Autorisée dans le pare-feu et la config)
+zabbix_server_ip: "{{ secret_zabbix_server_ip }}"
+
+# Nom d'hôte visible dans Zabbix (par défaut le hostname de la machine)
+zabbix_hostname: "{{ inventory_hostname }}"

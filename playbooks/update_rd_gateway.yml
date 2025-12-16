@@ -1,0 +1,60 @@
+---
+# 1. Récupération (Zoraxy)
+- name: Récupérer les certificats depuis Zoraxy
+  hosts: zoraxy
+  become: yes
+  vars:
+    remote_cert_path: "/etc/zoraxy/conf/certs/rdp.grandepharmaciebonaparte.fr.pem"
+    remote_key_path: "/etc/zoraxy/conf/certs/rdp.grandepharmaciebonaparte.fr.key"
+  tasks:
+    - name: Fetch Public Cert
+      fetch:
+        src: "{{ remote_cert_path }}"
+        dest: "/tmp/cert_temp.pem"
+        flat: yes
+    - name: Fetch Private Key
+      fetch:
+        src: "{{ remote_key_path }}"
+        dest: "/tmp/key_temp.key"
+        flat: yes
+
+# 2. Conversion (Localhost)
+- name: Conversion PFX
+  hosts: localhost
+  connection: local
+  gather_facts: no
+  tasks:
+    - name: Générer mot de passe temporaire
+      set_fact:
+        temp_pfx_pass: "{{ lookup('password', '/dev/null length=15 chars=ascii_letters,digits') }}"
+
+    - name: Créer PFX via OpenSSL
+      command: >
+        openssl pkcs12 -export
+        -out /tmp/rdp_update.pfx
+        -inkey /tmp/key_temp.key
+        -in /tmp/cert_temp.pem
+        -passout pass:{{ temp_pfx_pass }}
+
+# 3. Déploiement (Windows)
+- name: Mise à jour Gateway Windows
+  hosts: windows_hosts # Groupe de vos serveurs RDS
+  roles:
+    - role: rd_gateway
+      vars:
+        pfx_local_path: "/tmp/rdp_update.pfx"
+        pfx_password: "{{ hostvars['localhost']['temp_pfx_pass'] }}"
+
+# 4. Nettoyage (Localhost)
+- name: Nettoyage final
+  hosts: localhost
+  connection: local
+  tasks:
+    - name: Supprimer fichiers temporaires
+      file:
+        path: "{{ item }}"
+        state: absent
+      loop:
+        - "/tmp/cert_temp.pem"
+        - "/tmp/key_temp.key"
+        - "/tmp/rdp_update.pfx"

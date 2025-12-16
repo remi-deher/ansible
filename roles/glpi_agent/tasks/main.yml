@@ -1,0 +1,63 @@
+---
+- name: Désinstaller glpi-agent version APT (conflit potentiel)
+  apt:
+    name: glpi-agent
+    state: absent
+    purge: yes
+
+- name: Installer les dépendances Perl et Système
+  apt:
+    name:
+      - dmidecode
+      - pciutils
+      - usbutils
+      - perl
+      - libnet-ssleay-perl
+      - libcrypt-ssleay-perl
+      - libwww-perl
+      - libio-socket-ssl-perl
+      - make
+      - wget
+      - libcrypt-rijndael-perl        # Pour SNMP v3
+      - libparallel-forkmanager-perl  # Pour la performance
+    state: present
+    # update_cache est géré par 'common', mais on assure le coup si exécuté seul
+    update_cache: yes
+    cache_valid_time: 3600
+
+- name: "Sécurité | Autoriser le port 62354 (GLPI Remote Trigger)"
+  community.general.ufw:
+    rule: allow
+    port: '62354'
+    proto: tcp
+    comment: 'GLPI Agent Trigger'
+  notify: Reload UFW
+
+- name: Télécharger le script d'installation
+  get_url:
+    url: "{{ glpi_download_url }}"
+    dest: "/tmp/{{ glpi_installer_name }}"
+    mode: '0755'
+
+- name: Exécuter l'installation de l'agent
+  command:
+    argv:
+      - perl
+      - "/tmp/{{ glpi_installer_name }}"
+      - "--server={{ glpi_server_url }}"
+      - "--service"
+      - "--tag={{ glpi_agent_tag }}"
+      - "--type=all"
+      - "--install"
+      - "--runnow"
+      - "--no-question"
+      - "--force"
+  register: install_result
+  changed_when: "'Installation successful' in install_result.stdout"
+  notify: Redémarrer GLPI Agent
+
+- name: S'assurer que le service est démarré
+  service:
+    name: glpi-agent
+    state: started
+    enabled: yes

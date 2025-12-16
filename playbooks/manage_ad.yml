@@ -1,0 +1,7 @@
+---
+- name: Gestion Active Directory
+  hosts: windows # Assurez-vous que ce groupe existe dans l'inventaire XO (tag 'Windows')
+  gather_facts: no
+  
+  roles:
+    - ad_management

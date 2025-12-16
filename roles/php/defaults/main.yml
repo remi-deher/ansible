@@ -1,0 +1,3 @@
+---
+# Version par défaut (peut être surchargée dans group_vars)
+php_version: "8.4"

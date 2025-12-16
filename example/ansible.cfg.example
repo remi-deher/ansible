@@ -1,0 +1,22 @@
+[defaults]
+# --- STRUCTURE DU PROJET ---
+inventory = inventory/
+roles_path = roles/
+# Plugins customs
+inventory_plugins = plugins/inventory
+
+# --- CONNEXION ---
+remote_user = #mon_user
+host_key_checking = False
+display_skipped_hosts = no
+
+private_key_file = #chemin vers clé privée
+
+# --- SECURITE VAULT ---
+vault_password_file = .vault_pass
+
+[privilege_escalation]
+# active sudo par défaut si besoin
+ become = True
+ become_method = sudo
+ become_user = root

@@ -1,0 +1,20 @@
+---
+- name: Installation de rsync (Requis pour synchronize)
+  apt:
+    name: rsync
+    state: present
+
+- name: Création du dossier cible
+  file:
+    path: "{{ certs_dest_linux }}"
+    state: directory
+    mode: '0755'
+
+- name: Synchronisation des certificats
+  synchronize:
+    src: "{{ certs_local_linux }}"
+    dest: "{{ certs_dest_linux }}"
+    delete: yes
+    recursive: yes
+    checksum: yes
+  notify: update_ca_linux

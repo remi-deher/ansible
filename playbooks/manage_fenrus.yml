@@ -1,0 +1,8 @@
+---
+- name: Déploiement de Fenrus Dashboard (Dotnet Bare Metal)
+  hosts: tag_webserver
+  become: yes
+
+  roles:
+    - common
+    - fenrus

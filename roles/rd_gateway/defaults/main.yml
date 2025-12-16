@@ -1,0 +1,4 @@
+---
+# UUID par défaut de la Gateway RDP Microsoft
+rdp_gateway_appid: "{4dc3e181-e14b-4a21-b022-59fc669b0914}"
+win_pfx_dest: "C:\\Windows\\Temp\\rdp_update.pfx"

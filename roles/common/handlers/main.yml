@@ -1,0 +1,7 @@
+---
+- name: Reboot Server
+  reboot:
+    msg: "Redémarrage automatique par Ansible (Updates)"
+    pre_reboot_delay: 10
+    post_reboot_delay: 15
+    reboot_timeout: 300
